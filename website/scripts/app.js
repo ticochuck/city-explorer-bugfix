@@ -26,7 +26,7 @@ function handleKey(event) {
 }
 
 function getKey() {
-  if (localStorage.getItem('geocode')) return localStorage.getItem('geocode');
+  if (localStorage.getItem('geocode')) return JSON.parse(localStorage.getItem('geocode'));
 }
 
 function storeKey(key) {
@@ -56,9 +56,9 @@ function fetchCityData(event) {
       showTitle(location);
       displayMap(location);
       getResource('weather', location);
-      getResource('movies');
-      getResource('yelp');
-      getResource('trails');
+      getResource('movies', location);
+      getResource('yelp', location);
+      getResource('trails', location);
     })
     .catch(error => {
       showError(error);
@@ -113,13 +113,13 @@ function clearScreen() {
 
 function render(data, target, templateId) {
 
-  const template = $(templateId);
+  const template = $(templateId).html();
 
   data.forEach(obj => {
     let html = Mustache.render(template, obj);
     $(target).append(html);
   });
-
+  $('section').show();
 }
 
 $(() => {
