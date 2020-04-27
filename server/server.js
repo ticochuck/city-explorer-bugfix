@@ -7,12 +7,13 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const pg = require('pg');
+const superagent = require('superagent');
 
 // Application Setup
 const PORT = process.env.PORT;
 const app = express();
 const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', (error) => console.error('Connection Failure', error));
+// client.on('error', (error) => console.error('Connection Failure', error));
 
 app.use(cors());
 
@@ -21,6 +22,7 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/yelp', yelpHandler);
 app.get('/movies', moviesHandler);
+app.get('/trails', trailsHandler);
 
 app.use('*', notFoundHandler);
 app.use(errorHandler);
@@ -39,12 +41,12 @@ function locationHandler(request, response) {
 
 function getLocationData(city) {
 
-  const SQL = 'SELECT * FROM locations WHERE search_query = $1';
+  const SQL = `SELECT * FROM locations WHERE search_query = $1`;
   const values = [city];
 
-  client.query(SQL, values)
+  return client.query(SQL, values)
     .then(results => {
-      if (results.rowCount) { return results.rows[0]; }
+      if (results.rowCount >= 1) { return results.rows[0]; }
       else {
 
         const url = `https://us1.locationiq.com/v1/search.php`;
@@ -56,7 +58,7 @@ function getLocationData(city) {
           limit:1,
         };
 
-        superagent.get(url)
+        return superagent.get(url)
           .query(queryParams)
           .then(data => cacheLocation(city, data.body));
       }
@@ -143,10 +145,10 @@ function getYelp(location) {
 
   const queryParams = {
     location:location,
-    key: process.env.YELP_API_KEY
   };
 
   return superagent.get(url)
+    .set ('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
     .query(queryParams)
     .then(data => parseYelpData(data.body));
 }
@@ -299,7 +301,7 @@ function errorHandler(error, request, response) {
 }
 
 function startServer() {
-  app.listen(PORT, console.log(`Server up on ${PORT}`);
+  app.listen(PORT, () => console.log(`Server up on ${PORT}`));
 }
 
 // Start Up the Server after the database is connected and cache is loaded
